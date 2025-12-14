@@ -1,0 +1,182 @@
+/* Toast 通知 */
+#prompthub-toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.prompthub-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  transform: translateX(120%);
+  transition: transform 0.3s ease;
+  pointer-events: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.prompthub-toast.show {
+  transform: translateX(0);
+}
+
+.prompthub-toast-icon {
+  font-size: 20px;
+}
+
+.prompthub-toast-content {
+  flex: 1;
+}
+
+.prompthub-toast-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fafafa;
+}
+
+.prompthub-toast-message {
+  font-size: 12px;
+  color: #a1a1aa;
+  margin-top: 2px;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 建议面板 */
+#prompthub-suggestion-panel {
+  position: absolute;
+  z-index: 2147483646;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  max-height: 320px;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#prompthub-suggestion-panel.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.prompthub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #27272a;
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+.prompthub-hint {
+  font-size: 11px;
+  color: #71717a;
+}
+
+.prompthub-list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.prompthub-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid #27272a;
+}
+
+.prompthub-item:last-child {
+  border-bottom: none;
+}
+
+.prompthub-item:hover {
+  background: #27272a;
+}
+
+.prompthub-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fafafa;
+  margin-bottom: 4px;
+}
+
+.prompthub-item-preview {
+  font-size: 12px;
+  color: #71717a;
+  line-height: 1.4;
+}
+
+.prompthub-item-tag {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  font-size: 10px;
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border-radius: 4px;
+}
+
+.prompthub-empty {
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: #71717a;
+}
+
+.prompthub-link {
+  color: #3b82f6;
+  margin-left: 8px;
+  text-decoration: none;
+}
+
+/* 悬浮保存按钮 */
+#prompthub-save-btn {
+  position: fixed;
+  z-index: 2147483645;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+  opacity: 0;
+  transform: scale(0.9);
+  transition: all 0.2s ease;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#prompthub-save-btn.show {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+#prompthub-save-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 25px rgba(59, 130, 246, 0.5);
+}
