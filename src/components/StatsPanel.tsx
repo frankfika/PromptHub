@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Database, Star, FolderOpen, Copy } from 'lucide-react'
 import { promptDB } from '../lib/db'
+import { STAT_COLORS } from '../lib/constants'
 
 interface Stats {
   total: number
@@ -16,6 +17,7 @@ interface Props {
 
 export function StatsPanel({ refreshKey }: Props) {
   const [stats, setStats] = useState<Stats | null>(null)
+  const isDark = document.documentElement.classList.contains('dark')
 
   useEffect(() => {
     let cancelled = false
@@ -32,29 +34,29 @@ export function StatsPanel({ refreshKey }: Props) {
       icon: Database,
       label: '总数',
       value: stats.total,
-      color: '#10B981',
-      bg: '#ECFDF5'
+      color: STAT_COLORS.total.icon,
+      bg: isDark ? STAT_COLORS.total.darkBg : STAT_COLORS.total.bg
     },
     {
       icon: Copy,
       label: '使用次数',
       value: stats.totalUsage,
-      color: '#3B82F6',
-      bg: '#EFF6FF'
+      color: STAT_COLORS.usage.icon,
+      bg: isDark ? STAT_COLORS.usage.darkBg : STAT_COLORS.usage.bg
     },
     {
       icon: Star,
       label: '收藏',
       value: stats.favorites,
-      color: '#F59E0B',
-      bg: '#FFFBEB'
+      color: STAT_COLORS.favorites.icon,
+      bg: isDark ? STAT_COLORS.favorites.darkBg : STAT_COLORS.favorites.bg
     },
     {
       icon: FolderOpen,
       label: '分类',
       value: stats.categories,
-      color: '#8B5CF6',
-      bg: '#F5F3FF'
+      color: STAT_COLORS.categories.icon,
+      bg: isDark ? STAT_COLORS.categories.darkBg : STAT_COLORS.categories.bg
     }
   ]
 
@@ -70,20 +72,23 @@ export function StatsPanel({ refreshKey }: Props) {
         {statItems.map((item, index) => (
           <div
             key={item.label}
-            className="flex items-center gap-3 px-4 py-2"
+            className="stat-card flex items-center gap-3 px-4 py-2 cursor-default"
             style={{
-              borderRight: index < 3 ? '1px solid var(--border)' : 'none'
+              borderRight: index < 3 ? '1px solid var(--border)' : 'none',
+              background: 'transparent',
+              border: 'none',
+              boxShadow: 'none'
             }}
           >
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-200"
               style={{ background: item.bg }}
             >
               <item.icon size={18} style={{ color: item.color }} />
             </div>
             <div>
               <div
-                className="text-xl font-semibold"
+                className="stat-value text-xl font-semibold"
                 style={{ color: 'var(--text-primary)' }}
               >
                 {item.value}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { X, Copy, Check, Star, Edit3, ExternalLink, Calendar, Share2, Banana, ImageIcon, ZoomIn } from 'lucide-react'
+import { X, Copy, Check, Star, Edit3, ExternalLink, Calendar, Share2, Banana, ImageIcon, ZoomIn, History, ChevronDown, RotateCcw } from 'lucide-react'
 import type { Prompt } from '../types/prompt'
+import { promptDB } from '../lib/db'
 
 // 检测来源品牌
 function detectSourceBrand(url?: string): boolean {
@@ -33,14 +34,44 @@ interface Props {
   onCopy: () => void
   onEdit: () => void
   onToggleFavorite: () => void
+  onRestore?: () => void // 恢复版本后刷新
 }
 
-export function PromptDetailModal({ prompt, onClose, onCopy, onEdit, onToggleFavorite }: Props) {
+export function PromptDetailModal({ prompt, onClose, onCopy, onEdit, onToggleFavorite, onRestore }: Props) {
   const [copied, setCopied] = useState(false)
   const [shared, setShared] = useState(false)
   const [showLightbox, setShowLightbox] = useState(false)
+  const [showVersions, setShowVersions] = useState(false)
+  const [restoringVersion, setRestoringVersion] = useState<number | null>(null)
 
   const isNanoBanana = detectSourceBrand(prompt.source?.url)
+  const hasVersions = prompt.versions && prompt.versions.length > 0
+
+  // 恢复到某个版本
+  const handleRestoreVersion = async (versionIndex: number) => {
+    if (!prompt.id) return
+    setRestoringVersion(versionIndex)
+    try {
+      await promptDB.restoreVersion(prompt.id, versionIndex)
+      onRestore?.()
+      onClose()
+    } catch (error) {
+      console.error('恢复版本失败:', error)
+    } finally {
+      setRestoringVersion(null)
+    }
+  }
+
+  // 格式化版本时间
+  const formatVersionTime = (date: Date) => {
+    const d = new Date(date)
+    return d.toLocaleString('zh-CN', {
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
 
   // Lightbox 键盘事件 - Escape 关闭
   useEffect(() => {
@@ -119,35 +150,33 @@ export function PromptDetailModal({ prompt, onClose, onCopy, onEdit, onToggleFav
             {prompt.category}
           </span>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <button
               onClick={handleShare}
-              className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
-              style={{ color: shared ? 'var(--accent)' : 'var(--text-muted)' }}
+              className="action-btn"
+              style={{ color: shared ? 'var(--accent)' : undefined }}
               title="分享"
             >
-              {shared ? <Check size={18} /> : <Share2 size={18} />}
+              {shared ? <Check size={18} className="copy-success-icon" /> : <Share2 size={18} />}
             </button>
             <button
               onClick={onToggleFavorite}
-              className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
-              style={{ color: prompt.isFavorite ? '#F59E0B' : 'var(--text-muted)' }}
+              className="action-btn"
+              style={{ color: prompt.isFavorite ? '#F59E0B' : undefined }}
               title="收藏"
             >
               <Star size={18} fill={prompt.isFavorite ? 'currentColor' : 'none'} />
             </button>
             <button
               onClick={onEdit}
-              className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
-              style={{ color: 'var(--text-muted)' }}
+              className="action-btn"
               title="编辑"
             >
               <Edit3 size={18} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)]"
-              style={{ color: 'var(--text-muted)' }}
+              className="action-btn"
               title="关闭"
             >
               <X size={18} />
@@ -268,7 +297,7 @@ export function PromptDetailModal({ prompt, onClose, onCopy, onEdit, onToggleFav
 
           {/* 标签 */}
           {prompt.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-5">
               {prompt.tags.map(tag => (
                 <span
                   key={tag}
@@ -281,6 +310,87 @@ export function PromptDetailModal({ prompt, onClose, onCopy, onEdit, onToggleFav
                   {tag}
                 </span>
               ))}
+            </div>
+          )}
+
+          {/* 版本历史 */}
+          {hasVersions && (
+            <div
+              className="rounded-xl overflow-hidden"
+              style={{ border: '1px solid var(--border)' }}
+            >
+              <button
+                onClick={() => setShowVersions(!showVersions)}
+                className="w-full flex items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--bg-tertiary)]"
+                style={{ background: 'var(--bg-secondary)' }}
+              >
+                <span className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  <History size={16} style={{ color: 'var(--text-muted)' }} />
+                  版本历史
+                  <span
+                    className="px-1.5 py-0.5 text-xs rounded"
+                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-caption)' }}
+                  >
+                    {prompt.versions?.length}
+                  </span>
+                </span>
+                <ChevronDown
+                  size={16}
+                  style={{
+                    color: 'var(--text-muted)',
+                    transform: showVersions ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 0.2s'
+                  }}
+                />
+              </button>
+
+              {showVersions && (
+                <div
+                  className="max-h-48 overflow-auto"
+                  style={{ borderTop: '1px solid var(--border)' }}
+                >
+                  {prompt.versions?.map((version, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--bg-tertiary)]"
+                      style={{ borderBottom: index < (prompt.versions?.length || 0) - 1 ? '1px solid var(--border)' : 'none' }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                            版本 {(prompt.versions?.length || 0) - index}
+                          </span>
+                          <span className="text-xs" style={{ color: 'var(--text-caption)' }}>
+                            {formatVersionTime(version.updatedAt)}
+                          </span>
+                        </div>
+                        <p
+                          className="text-xs line-clamp-1"
+                          style={{ color: 'var(--text-caption)' }}
+                        >
+                          {version.content.slice(0, 80)}...
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleRestoreVersion(index)}
+                        disabled={restoringVersion !== null}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors hover:bg-[var(--accent-light)]"
+                        style={{ color: 'var(--accent)' }}
+                        title="恢复此版本"
+                      >
+                        {restoringVersion === index ? (
+                          <span className="animate-spin">...</span>
+                        ) : (
+                          <>
+                            <RotateCcw size={12} />
+                            恢复
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -299,14 +409,15 @@ export function PromptDetailModal({ prompt, onClose, onCopy, onEdit, onToggleFav
           </button>
           <button
             onClick={handleCopy}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all btn-press"
             style={{
               background: copied ? 'var(--success-light)' : 'var(--accent)',
               color: copied ? 'var(--success)' : 'white',
-              boxShadow: copied ? 'none' : '0 2px 8px var(--accent-glow)'
+              boxShadow: copied ? 'none' : '0 2px 8px var(--accent-glow)',
+              minWidth: '88px'
             }}
           >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
+            {copied ? <Check size={16} className="copy-success-icon" /> : <Copy size={16} />}
             {copied ? '已复制' : '复制'}
           </button>
         </div>

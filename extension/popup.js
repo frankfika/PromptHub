@@ -45,7 +45,7 @@ function renderPrompts(prompts) {
   }
 
   promptList.innerHTML = prompts.map(p => `
-    <div class="prompt-item" data-id="${p.id}" data-content="${escapeHtml(p.content)}">
+    <div class="prompt-item" data-id="${p.id}">
       <div class="prompt-title">
         ${p.isFavorite ? '<span class="fav">★</span>' : ''}
         ${escapeHtml(p.title)}
@@ -61,17 +61,19 @@ function renderPrompts(prompts) {
   // 绑定点击事件 - 复制
   promptList.querySelectorAll('.prompt-item').forEach(item => {
     item.addEventListener('click', async () => {
-      const content = item.dataset.content
-      await navigator.clipboard.writeText(content)
+      const promptId = parseInt(item.dataset.id, 10)
+      const prompt = prompts.find(p => p.id === promptId)
+      if (!prompt?.content) return
+
+      await navigator.clipboard.writeText(prompt.content)
 
       // 增加使用次数（更新 promptsCache）
       const result = await chrome.storage.local.get('promptsCache')
-      const prompts = result.promptsCache || []
-      const promptId = parseInt(item.dataset.id)
-      const index = prompts.findIndex(p => p.id === promptId)
+      const cachedPrompts = result.promptsCache || []
+      const index = cachedPrompts.findIndex(p => p.id === promptId)
       if (index > -1) {
-        prompts[index].usageCount = (prompts[index].usageCount || 0) + 1
-        await chrome.storage.local.set({ promptsCache: prompts })
+        cachedPrompts[index].usageCount = (cachedPrompts[index].usageCount || 0) + 1
+        await chrome.storage.local.set({ promptsCache: cachedPrompts })
       }
 
       // 显示复制成功

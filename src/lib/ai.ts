@@ -529,6 +529,109 @@ export async function semanticSearch(query: string, prompts: Prompt[]): Promise<
   }
 }
 
+// 从社交媒体 URL 抓取内容
+export async function fetchSocialContent(url: string): Promise<{ content: string; author?: string; error?: string }> {
+  const urlObj = new URL(url)
+  const host = urlObj.host.toLowerCase()
+
+  // Twitter/X - 使用 oEmbed API
+  if (host.includes('twitter.com') || host.includes('x.com')) {
+    return fetchTwitterContent(url)
+  }
+
+  // 小红书 - 暂不支持直接抓取
+  if (host.includes('xiaohongshu.com')) {
+    return { content: '', error: '小红书暂不支持自动抓取，请手动复制内容' }
+  }
+
+  // 微博 - 暂不支持直接抓取
+  if (host.includes('weibo.com') || host.includes('weibo.cn')) {
+    return { content: '', error: '微博暂不支持自动抓取，请手动复制内容' }
+  }
+
+  return { content: '', error: '不支持该网站的自动抓取' }
+}
+
+// 抓取 Twitter/X 内容
+async function fetchTwitterContent(url: string): Promise<{ content: string; author?: string; error?: string }> {
+  try {
+    // 方案1: 使用 Twitter oEmbed API (通过 CORS 代理)
+    const oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}&omit_script=true`
+
+    // 尝试多个 CORS 代理
+    const corsProxies = [
+      (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    ]
+
+    for (const proxyFn of corsProxies) {
+      try {
+        const proxyUrl = proxyFn(oembedUrl)
+        const response = await fetch(proxyUrl, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.html) {
+            // 从 oEmbed HTML 中提取文本内容
+            const parser = new DOMParser()
+            const doc = parser.parseFromString(data.html, 'text/html')
+            const textContent = doc.body.textContent?.trim() || ''
+            const author = data.author_name || ''
+
+            if (textContent) {
+              return { content: textContent, author }
+            }
+          }
+        }
+      } catch (e) {
+        console.log('CORS proxy failed, trying next...', e)
+        continue
+      }
+    }
+
+    // 方案2: 尝试使用 nitter 代理
+    const tweetMatch = url.match(/(?:twitter\.com|x\.com)\/(\w+)\/status\/(\d+)/)
+    if (tweetMatch) {
+      const [, username, tweetId] = tweetMatch
+      const nitterInstances = [
+        'nitter.net',
+        'nitter.privacydev.net',
+      ]
+
+      for (const instance of nitterInstances) {
+        try {
+          const nitterUrl = `https://${instance}/${username}/status/${tweetId}`
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(nitterUrl)}`
+
+          const response = await fetch(proxyUrl)
+          if (response.ok) {
+            const html = await response.text()
+            const parser = new DOMParser()
+            const doc = parser.parseFromString(html, 'text/html')
+
+            // 尝试提取推文内容
+            const tweetContent = doc.querySelector('.tweet-content')?.textContent?.trim()
+            if (tweetContent) {
+              return { content: tweetContent, author: username }
+            }
+          }
+        } catch (e) {
+          console.log('Nitter instance failed, trying next...', e)
+          continue
+        }
+      }
+    }
+
+    return { content: '', error: 'Twitter 抓取失败，请手动复制内容' }
+  } catch (error) {
+    console.error('Twitter fetch error:', error)
+    return { content: '', error: '抓取失败，请手动复制内容' }
+  }
+}
+
 // 简单文本搜索（fallback）
 function simpleSearch(query: string, prompts: Prompt[]): Prompt[] {
   const q = query.toLowerCase()

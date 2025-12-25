@@ -83,28 +83,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // 打开网页端并传递内容
 function openWebAppWithContent(data) {
-  // 如果有 screenshot（base64），通过 storage 临时存储
-  if (data.screenshot) {
-    chrome.storage.local.set({
-      pendingPrompt: {
-        content: data.content || '',
-        source: data.url || '',
-        screenshot: data.screenshot,
-        author: data.author || '',
-        type: data.type || 'text',
-        timestamp: Date.now()
-      }
-    })
-    chrome.tabs.create({ url: `${WEB_APP_URL}?action=save-with-image` })
-  } else {
-    const params = new URLSearchParams()
-    if (data.content) params.set('content', data.content)
-    if (data.url) params.set('source', data.url)
-    if (data.imageUrl) params.set('image', data.imageUrl)
+  // 通过 storage 临时存储，避免把内容放到 URL 参数里
+  chrome.storage.local.set({
+    pendingPrompt: {
+      content: data.content || '',
+      source: data.url || '',
+      screenshot: data.screenshot || data.imageUrl || '',
+      author: data.author || '',
+      type: data.type || (data.screenshot || data.imageUrl ? 'image' : 'text'),
+      timestamp: Date.now()
+    }
+  })
 
-    const url = `${WEB_APP_URL}?action=save&${params.toString()}`
-    chrome.tabs.create({ url })
-  }
+  chrome.tabs.create({ url: `${WEB_APP_URL}?action=save-from-extension` })
 }
 
 // 从网页端获取提示词（通过多种方式尝试）

@@ -9,10 +9,15 @@ import { EmptyState } from './components/EmptyState'
 import { ImportExportModal } from './components/ImportExportModal'
 import { UsePromptModal } from './components/UsePromptModal'
 import { StatsPanel } from './components/StatsPanel'
+import { Toast } from './components/Toast'
+import { useToast } from './hooks/useToast'
+import { ConfirmModal } from './components/ConfirmModal'
+import { KeyboardHelp } from './components/KeyboardHelp'
+import { PromptGridSkeleton } from './components/Skeleton'
 import { usePrompts } from './hooks/usePrompts'
 import { useSettings } from './hooks/useSettings'
 import type { Prompt } from './types/prompt'
-import { Loader2, Clock, TrendingUp, SortAsc, Menu, X as CloseIcon, Search } from 'lucide-react'
+import { Clock, TrendingUp, SortAsc, Menu, X as CloseIcon, Search } from 'lucide-react'
 import { parseTemplateVariables } from './lib/ai'
 import type { SortOption } from './hooks/usePrompts'
 
@@ -45,6 +50,7 @@ function App() {
   } = usePrompts()
 
   const { settings, updateSettings, toggleTheme } = useSettings()
+  const toast = useToast()
 
   const [showPromptModal, setShowPromptModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -54,45 +60,64 @@ function App() {
   const [usingPrompt, setUsingPrompt] = useState<Prompt | null>(null)
   const [initialContent, setInitialContent] = useState<{ content: string; source: string; screenshot?: string } | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; promptId: number | null }>({
+    isOpen: false,
+    promptId: null
+  })
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false)
 
   // 处理 URL 参数（从插件跳转过来）
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const action = params.get('action')
+    let handled = false
+
+    const openPromptModal = (data: { content?: string; source?: string; screenshot?: string; author?: string }) => {
+      if (handled) return
+      const content = (data.content || '').toString()
+      const source = (data.source || '').toString()
+      const screenshot = data.screenshot || undefined
+      const author = (data.author || '').toString()
+
+      if (!content && !screenshot) return
+      handled = true
+
+      queueMicrotask(() => {
+        setInitialContent({
+          content: author ? `[来自 ${author}]\n\n${content}` : content,
+          source,
+          screenshot
+        })
+        setShowPromptModal(true)
+      })
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== window) return
+      if (event.origin !== window.location.origin) return
+
+      const msg = event.data
+      if (!msg || msg.source !== 'prompthub-extension') return
+      if (msg.type !== 'pending-prompt') return
+
+      openPromptModal(msg.payload || {})
+    }
+
+    window.addEventListener('message', handleMessage)
 
     if (action === 'save') {
       const content = params.get('content') || ''
       const source = params.get('source') || ''
       if (content) {
-        queueMicrotask(() => {
-          setInitialContent({ content, source })
-          setShowPromptModal(true)
-        })
-        window.history.replaceState({}, '', window.location.pathname)
+        openPromptModal({ content, source })
       }
-    } else if (action === 'save-with-image') {
-      // 从扩展存储读取带图片的数据
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const chromeAPI = (globalThis as any).chrome
-      if (chromeAPI?.storage?.local) {
-        chromeAPI.storage.local.get(['pendingPrompt'], (result: { pendingPrompt?: { content: string; source: string; screenshot: string; author: string; type: string } }) => {
-          if (result.pendingPrompt) {
-            const { content, source, screenshot, author } = result.pendingPrompt
-            queueMicrotask(() => {
-              setInitialContent({
-                content: author ? `[来自 ${author}]\n\n${content}` : content,
-                source,
-                screenshot
-              })
-              setShowPromptModal(true)
-            })
-            // 清理临时数据
-            chromeAPI.storage.local.remove('pendingPrompt')
-          }
-          window.history.replaceState({}, '', window.location.pathname)
-        })
-      }
+    } else if (action === 'save-from-extension' || action === 'save-with-image') {
+      // 请求 content script 从扩展 storage 转发临时数据（避免 URL 泄漏）
+      window.postMessage({ source: 'prompthub-web', type: 'request-pending-prompt' }, window.location.origin)
     }
+
+    return () => window.removeEventListener('message', handleMessage)
   }, [])
 
   // 监听打开设置的事件（从子组件触发）
@@ -132,6 +157,11 @@ function App() {
         e.preventDefault()
         handleAddNew()
       }
+      // ? - 显示快捷键帮助
+      if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault()
+        setShowKeyboardHelp(true)
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -150,15 +180,23 @@ function App() {
   const handleSavePrompt = async (data: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>) => {
     if (editingPrompt?.id) {
       await updatePrompt(editingPrompt.id, data)
+      toast.success('提示词已更新')
     } else {
       await addPrompt(data)
+      toast.success('提示词已保存')
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (confirm('确定要删除这个提示词吗？')) {
-      await deletePrompt(id)
+  const handleDelete = (id: number) => {
+    setDeleteConfirm({ isOpen: true, promptId: id })
+  }
+
+  const confirmDelete = async () => {
+    if (deleteConfirm.promptId) {
+      await deletePrompt(deleteConfirm.promptId)
+      toast.success('提示词已删除')
     }
+    setDeleteConfirm({ isOpen: false, promptId: null })
   }
 
   // 复制时检查是否有模板变量
@@ -168,6 +206,7 @@ function App() {
       setUsingPrompt(prompt)
     } else {
       copyPrompt(prompt.id!)
+      toast.success('已复制到剪贴板')
     }
   }
 
@@ -203,6 +242,7 @@ function App() {
           onAddNew={() => { handleAddNew(); setMobileMenuOpen(false) }}
           onOpenSettings={() => { setShowSettings(true); setMobileMenuOpen(false) }}
           onOpenImportExport={() => { setShowImportExport(true); setMobileMenuOpen(false) }}
+          onOpenKeyboardHelp={() => { setShowKeyboardHelp(true); setMobileMenuOpen(false) }}
           theme={settings.theme}
           onToggleTheme={toggleTheme}
         />
@@ -301,18 +341,7 @@ function App() {
           )}
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-32">
-              <Loader2 size={24} className="animate-spin" style={{ color: 'var(--accent)' }} />
-              <p
-                style={{
-                  fontSize: '14px',
-                  color: 'var(--text-muted)',
-                  marginTop: '12px'
-                }}
-              >
-                加载中...
-              </p>
-            </div>
+            <PromptGridSkeleton count={6} />
           ) : filteredPrompts.length === 0 ? (
             searchQuery ? (
               <div className="text-center py-32">
@@ -345,7 +374,7 @@ function App() {
               <EmptyState onAddNew={handleAddNew} onOpenImport={() => setShowImportExport(true)} />
             )
           ) : (
-            <div className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
               {filteredPrompts.map((prompt, index) => (
                 <div
                   key={prompt.id}
@@ -417,8 +446,33 @@ function App() {
             toggleFavorite(viewingPrompt.id!)
             setViewingPrompt({ ...viewingPrompt, isFavorite: !viewingPrompt.isFavorite })
           }}
+          onRestore={() => {
+            refresh()
+            toast.success('版本已恢复')
+          }}
         />
       )}
+
+      {/* 删除确认弹窗 */}
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="删除提示词"
+        message="确定要删除这个提示词吗？此操作无法撤销。"
+        confirmText="删除"
+        cancelText="取消"
+        type="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, promptId: null })}
+      />
+
+      {/* Toast 通知 */}
+      <Toast toasts={toast.toasts} onRemove={toast.removeToast} />
+
+      {/* 快捷键帮助 */}
+      <KeyboardHelp
+        isOpen={showKeyboardHelp}
+        onClose={() => setShowKeyboardHelp(false)}
+      />
     </div>
   )
 }

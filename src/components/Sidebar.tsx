@@ -1,4 +1,4 @@
-import { Layers, Star, Settings, Plus, ArrowDownUp } from 'lucide-react'
+import { Layers, Star, Settings, Plus, ArrowDownUp, Keyboard } from 'lucide-react'
 
 interface Props {
   categories: string[]
@@ -7,11 +7,12 @@ interface Props {
   onAddNew: () => void
   onOpenSettings: () => void
   onOpenImportExport: () => void
+  onOpenKeyboardHelp?: () => void
   theme?: 'dark' | 'light'
   onToggleTheme?: () => void
 }
 
-export function Sidebar({ categories, activeCategory, onCategoryChange, onAddNew, onOpenSettings, onOpenImportExport }: Props) {
+export function Sidebar({ categories, activeCategory, onCategoryChange, onAddNew, onOpenSettings, onOpenImportExport, onOpenKeyboardHelp }: Props) {
   return (
     <aside
       className="w-64 h-screen flex flex-col"
@@ -57,19 +58,19 @@ export function Sidebar({ categories, activeCategory, onCategoryChange, onAddNew
       <div className="px-4 pb-6">
         <button
           onClick={onAddNew}
-          className="w-full flex items-center justify-center gap-2 transition-all hover:shadow-lg"
+          className="w-full flex items-center justify-center gap-2 btn-press transition-all duration-200 hover:scale-[1.02]"
           style={{
             padding: '12px 16px',
-            background: 'var(--accent)',
+            background: 'var(--gradient-warm)',
             color: 'white',
             border: 'none',
-            borderRadius: 'var(--radius-md)',
+            borderRadius: '12px',
             fontSize: '14px',
-            fontWeight: 500,
-            boxShadow: '0 2px 8px var(--accent-glow)'
+            fontWeight: 600,
+            boxShadow: '0 4px 12px var(--accent-glow)'
           }}
         >
-          <Plus size={18} strokeWidth={2} />
+          <Plus size={18} strokeWidth={2.5} />
           <span>新建 Prompt</span>
         </button>
       </div>
@@ -143,7 +144,7 @@ export function Sidebar({ categories, activeCategory, onCategoryChange, onAddNew
 
       {/* Footer */}
       <div
-        className="p-4"
+        className="p-4 space-y-1"
         style={{ borderTop: '1px solid var(--border)' }}
       >
         <button
@@ -160,6 +161,21 @@ export function Sidebar({ categories, activeCategory, onCategoryChange, onAddNew
           <Settings size={16} />
           <span>设置</span>
         </button>
+        {onOpenKeyboardHelp && (
+          <button
+            onClick={onOpenKeyboardHelp}
+            className="sidebar-item w-full"
+          >
+            <Keyboard size={16} />
+            <span>快捷键</span>
+            <kbd
+              className="ml-auto px-1.5 py-0.5 text-[10px] rounded"
+              style={{ background: 'var(--bg-tertiary)', color: 'var(--text-caption)' }}
+            >
+              ?
+            </kbd>
+          </button>
+        )}
       </div>
     </aside>
   )

@@ -313,22 +313,18 @@ export const promptDB = {
 // Settings
 export const settingsDB = {
   async get(): Promise<Settings> {
-    const settings = await db.settings.toArray()
-    // 默认使用亮色主题
-    const defaultSettings = { aiProvider: 'deepseek' as const, theme: 'light' as const, autoAnalyze: true, language: 'zh' as const }
-    if (settings[0]) {
-      // 强制使用 light 主题（覆盖旧的 dark 设置）
-      return { ...settings[0], theme: 'light' }
-    }
+    const rows = await db.settings.toArray()
+    const defaultSettings: Settings = { aiProvider: 'deepseek', theme: 'light', autoAnalyze: true, language: 'zh' }
+    if (rows[0]) return { ...defaultSettings, ...rows[0] }
     return defaultSettings
   },
 
-  async save(settings: Partial<Settings>) {
+  async save(changes: Partial<Settings>) {
     const existing = await db.settings.toArray()
     if (existing.length > 0) {
-      return db.settings.update(existing[0].id!, settings)
-    } else {
-      return db.settings.add(settings as Settings)
+      return db.settings.update(existing[0].id!, changes)
     }
+    const defaultSettings: Settings = { aiProvider: 'deepseek', theme: 'light', autoAnalyze: true, language: 'zh' }
+    return db.settings.add({ ...defaultSettings, ...changes } as Settings)
   }
 }

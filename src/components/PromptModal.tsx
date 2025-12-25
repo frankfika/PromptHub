@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Sparkles, Loader2, ChevronDown, Link, ExternalLink, ImageIcon, Trash2 } from 'lucide-react'
 import type { Prompt } from '../types/prompt'
 import { AI_MODELS, HOT_MODELS } from '../types/prompt'
-import { parseTemplateVariables, isURL, extractPromptFromText } from '../lib/ai'
+import { parseTemplateVariables, isURL, extractPromptFromText, fetchSocialContent } from '../lib/ai'
 
 interface Props {
   prompt?: Prompt | null
@@ -22,9 +22,11 @@ export function PromptModal({ prompt, initialContent, initialSource, initialScre
   const [targetModel, setTargetModel] = useState('')
   const [sourceUrl, setSourceUrl] = useState(initialSource || '')
   const [processing, setProcessing] = useState(false)
+  const [saving, setSaving] = useState(false) // 防止重复提交
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [variables, setVariables] = useState<string[]>([])
   const [screenshot, setScreenshot] = useState<string | null>(null) // 参考图
+  const [fetching, setFetching] = useState(false) // 正在抓取 URL 内容
   const fileInputRef = useRef<HTMLInputElement>(null)
   const modalRef = useRef<HTMLDivElement>(null)
 
@@ -158,23 +160,30 @@ export function PromptModal({ prompt, initialContent, initialSource, initialScre
     }
   }
 
-  const handleSave = () => {
-    if (!content.trim()) return
-    onSave({
-      content,
-      title: title.trim() || content.slice(0, 50),
-      description: description.trim(),
-      tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-      category: category.trim() || '未分类',
-      targetModel: targetModel.trim() || undefined,
-      source: {
-        type: screenshot ? 'image' : 'text',
-        url: sourceUrl.trim() || undefined,
-        screenshot: screenshot || undefined
-      },
-      isFavorite: prompt?.isFavorite || false
-    })
-    onClose()
+  const handleSave = async () => {
+    if (!content.trim() || saving) return
+    setSaving(true)
+    try {
+      await onSave({
+        content,
+        title: title.trim() || content.slice(0, 50),
+        description: description.trim(),
+        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+        category: category.trim() || '未分类',
+        targetModel: targetModel.trim() || undefined,
+        source: {
+          type: screenshot ? 'image' : 'text',
+          url: sourceUrl.trim() || undefined,
+          screenshot: screenshot || undefined
+        },
+        isFavorite: prompt?.isFavorite || false
+      })
+      onClose()
+    } catch (error) {
+      console.error('保存失败:', error)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -204,8 +213,7 @@ export function PromptModal({ prompt, initialContent, initialSource, initialScre
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg transition-colors"
-            style={{ color: 'var(--text-muted)' }}
+            className="action-btn"
           >
             <X size={20} />
           </button>
@@ -248,7 +256,7 @@ export function PromptModal({ prompt, initialContent, initialSource, initialScre
           <div>
             <textarea
               value={content}
-              onChange={e => {
+              onChange={async e => {
                 const val = e.target.value.trim()
                 // 检测是否粘贴了社交媒体链接
                 const socialPatterns = [
@@ -259,16 +267,34 @@ export function PromptModal({ prompt, initialContent, initialSource, initialScre
 
                 for (const { pattern, name } of socialPatterns) {
                   if (val.match(pattern)) {
-                    if (confirm(`检测到 ${name} 链接！\n\n推荐：打开页面后用扩展 ⚡ 一键保存（自动提取图片+文字）\n\n点击「确定」打开页面\n点击「取消」手动粘贴内容`)) {
-                      window.open(val, '_blank')
-                      return
+                    // 自动抓取内容
+                    setContent(`正在抓取 ${name} 内容...`)
+                    setSourceUrl(val)
+                    setFetching(true)
+
+                    try {
+                      const result = await fetchSocialContent(val)
+                      if (result.content) {
+                        const authorPrefix = result.author ? `[来自 @${result.author}]\n\n` : ''
+                        setContent(authorPrefix + result.content)
+                      } else {
+                        // 抓取失败，提示用户手动复制
+                        setContent('')
+                        alert(result.error || `${name} 抓取失败，请手动复制内容`)
+                      }
+                    } catch {
+                      setContent('')
+                      alert(`${name} 抓取失败，请手动复制内容`)
+                    } finally {
+                      setFetching(false)
                     }
-                    break
+                    return
                   }
                 }
                 setContent(e.target.value)
               }}
-              placeholder="粘贴 Prompt 内容...&#10;&#10;💡 粘贴 Twitter 链接会自动跳转，用扩展一键保存&#10;📷 也可以直接粘贴截图 (⌘V) 作为参考图"
+              disabled={fetching}
+              placeholder="粘贴 Prompt 内容或社交媒体链接...&#10;&#10;🔗 粘贴 Twitter/X 链接会自动抓取内容&#10;📷 也可以直接粘贴截图 (⌘V) 作为参考图"
               rows={8}
               autoFocus
               className="w-full rounded-xl p-4 text-sm resize-none focus:outline-none transition-all"
@@ -363,7 +389,7 @@ export function PromptModal({ prompt, initialContent, initialSource, initialScre
           <button
             onClick={handleAIProcess}
             disabled={!content.trim() || processing}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-all duration-200"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm rounded-xl disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-all duration-200 btn-press"
             style={{
               background: 'var(--gradient-warm)',
               color: 'white',
@@ -496,15 +522,20 @@ export function PromptModal({ prompt, initialContent, initialSource, initialScre
           </button>
           <button
             onClick={handleSave}
-            disabled={!content.trim()}
-            className="px-6 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            disabled={!content.trim() || saving}
+            className="px-6 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 btn-press"
             style={{
               background: 'var(--accent)',
               color: 'white',
               boxShadow: '0 2px 8px var(--accent-glow)'
             }}
           >
-            保存
+            {saving ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                保存中...
+              </>
+            ) : '保存'}
           </button>
         </div>
       </div>

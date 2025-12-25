@@ -109,36 +109,56 @@ export function ImportExportModal({ onClose, onImportComplete }: Props) {
   ]
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--bg-secondary)] rounded-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <h2 className="text-lg font-semibold">导入 / 导出</h2>
-          <button onClick={onClose} className="p-1 hover:bg-[var(--bg-tertiary)] rounded">
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ background: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="w-full max-w-md animate-scaleIn"
+        style={{
+          background: 'var(--bg-card)',
+          borderRadius: '20px',
+          boxShadow: 'var(--shadow-lg)'
+        }}
+      >
+        <div
+          className="flex items-center justify-between p-5"
+          style={{ borderBottom: '1px solid var(--border)' }}
+        >
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            导入 / 导出
+          </h2>
+          <button onClick={onClose} className="action-btn">
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-4">
+        <div className="p-5">
           {/* 模式切换 */}
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-5">
             <button
               onClick={() => setMode('export')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                mode === 'export'
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
-              }`}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-200"
+              style={{
+                background: mode === 'export' ? 'var(--accent)' : 'var(--bg-tertiary)',
+                color: mode === 'export' ? 'white' : 'var(--text-secondary)',
+                border: `1px solid ${mode === 'export' ? 'var(--accent)' : 'var(--border)'}`
+              }}
             >
               <Download size={18} />
               导出
             </button>
             <button
               onClick={() => setMode('import')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
-                mode === 'import'
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
-              }`}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-200"
+              style={{
+                background: mode === 'import' ? 'var(--accent)' : 'var(--bg-tertiary)',
+                color: mode === 'import' ? 'white' : 'var(--text-secondary)',
+                border: `1px solid ${mode === 'import' ? 'var(--accent)' : 'var(--border)'}`
+              }}
             >
               <Upload size={18} />
               导入
@@ -153,16 +173,30 @@ export function ImportExportModal({ onClose, onImportComplete }: Props) {
                   <button
                     key={f.value}
                     onClick={() => setFormat(f.value)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${
-                      format === f.value
-                        ? 'border-[var(--accent)] bg-[var(--accent)]/10'
-                        : 'border-[var(--border)] hover:border-[var(--text-secondary)]'
-                    }`}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200"
+                    style={{
+                      background: format === f.value ? 'var(--accent-light)' : 'var(--bg-tertiary)',
+                      border: `1px solid ${format === f.value ? 'var(--accent)' : 'var(--border)'}`,
+                      transform: format === f.value ? 'scale(1.01)' : 'none'
+                    }}
                   >
-                    <f.icon size={20} className={format === f.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'} />
+                    <f.icon
+                      size={20}
+                      style={{ color: format === f.value ? 'var(--accent)' : 'var(--text-muted)' }}
+                    />
                     <div className="text-left">
-                      <div className="font-medium">{f.label}</div>
-                      <div className="text-xs text-[var(--text-secondary)]">{f.desc}</div>
+                      <div
+                        className="font-medium text-sm"
+                        style={{ color: format === f.value ? 'var(--accent)' : 'var(--text-primary)' }}
+                      >
+                        {f.label}
+                      </div>
+                      <div
+                        className="text-xs"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        {f.desc}
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -171,7 +205,12 @@ export function ImportExportModal({ onClose, onImportComplete }: Props) {
               <button
                 onClick={handleExport}
                 disabled={loading}
-                className="w-full mt-4 px-4 py-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full mt-5 px-4 py-3 rounded-xl font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-all duration-200 btn-press"
+                style={{
+                  background: 'var(--accent)',
+                  color: 'white',
+                  boxShadow: '0 2px 8px var(--accent-glow)'
+                }}
               >
                 {loading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
                 导出所有提示词
@@ -179,7 +218,10 @@ export function ImportExportModal({ onClose, onImportComplete }: Props) {
             </>
           ) : (
             <>
-              <div className="text-sm text-[var(--text-secondary)] mb-3">
+              <div
+                className="text-sm mb-3"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 支持导入 JSON、Markdown、CSV 格式
               </div>
 
@@ -188,21 +230,33 @@ export function ImportExportModal({ onClose, onImportComplete }: Props) {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`w-full px-4 py-8 border-2 border-dashed rounded-lg transition-colors flex flex-col items-center gap-2 cursor-pointer ${
-                  isDragging
-                    ? 'border-[var(--accent)] bg-[var(--accent)]/10'
-                    : 'border-[var(--border)] hover:border-[var(--accent)]'
-                } ${loading ? 'pointer-events-none' : ''}`}
+                className="w-full px-4 py-10 border-2 border-dashed rounded-xl transition-all duration-200 flex flex-col items-center gap-2 cursor-pointer"
+                style={{
+                  borderColor: isDragging ? 'var(--accent)' : 'var(--border)',
+                  background: isDragging ? 'var(--accent-light)' : 'var(--bg-tertiary)',
+                  pointerEvents: loading ? 'none' : 'auto'
+                }}
               >
                 {loading ? (
-                  <Loader2 size={32} className="animate-spin text-[var(--accent)]" />
+                  <Loader2 size={32} className="animate-spin" style={{ color: 'var(--accent)' }} />
                 ) : (
                   <>
-                    <Upload size={32} className={isDragging ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'} />
-                    <span className={isDragging ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}>
+                    <Upload
+                      size={32}
+                      style={{ color: isDragging ? 'var(--accent)' : 'var(--text-muted)' }}
+                    />
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: isDragging ? 'var(--accent)' : 'var(--text-secondary)' }}
+                    >
                       {isDragging ? '释放文件以导入' : '点击选择文件'}
                     </span>
-                    <span className="text-xs text-[var(--text-muted)]">或拖拽文件到这里</span>
+                    <span
+                      className="text-xs"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      或拖拽文件到这里
+                    </span>
                   </>
                 )}
               </div>
@@ -218,12 +272,14 @@ export function ImportExportModal({ onClose, onImportComplete }: Props) {
 
           {/* 消息提示 */}
           {message && (
-            <div className={`mt-4 px-4 py-2 rounded-lg text-sm flex items-center gap-2 ${
-              message.includes('成功')
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-red-500/20 text-red-400'
-            }`}>
-              {message.includes('成功') && <Check size={16} />}
+            <div
+              className="mt-4 px-4 py-3 rounded-xl text-sm flex items-center gap-2 animate-fadeIn"
+              style={{
+                background: message.includes('成功') ? 'var(--success-light)' : 'var(--error-light)',
+                color: message.includes('成功') ? 'var(--success)' : 'var(--error)'
+              }}
+            >
+              {message.includes('成功') && <Check size={16} className="copy-success-icon" />}
               {message}
             </div>
           )}

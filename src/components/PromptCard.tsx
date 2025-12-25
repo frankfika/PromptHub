@@ -1,19 +1,7 @@
 import { useState } from 'react'
 import { Copy, Star, Trash2, Edit3, Check, ExternalLink, Banana, ImageIcon } from 'lucide-react'
 import type { Prompt } from '../types/prompt'
-
-// 分类颜色
-const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
-  '写作': { bg: '#EEF2FF', text: '#6366F1' },
-  '编程': { bg: '#ECFDF5', text: '#10B981' },
-  '翻译': { bg: '#F5F3FF', text: '#8B5CF6' },
-  '分析': { bg: '#FFFBEB', text: '#F59E0B' },
-  '图像': { bg: '#FDF2F8', text: '#EC4899' },
-  '创意': { bg: '#FFF7ED', text: '#F97316' },
-  '效率': { bg: '#ECFEFF', text: '#06B6D4' },
-  '角色扮演': { bg: '#EEF2FF', text: '#6366F1' },
-  '其他': { bg: '#F1F5F9', text: '#64748B' },
-}
+import { getCategoryColor, isImageModel, MODEL_COLORS } from '../lib/constants'
 
 interface Props {
   prompt: Prompt
@@ -35,27 +23,25 @@ export function PromptCard({ prompt, onCopy, onToggleFavorite, onDelete, onEdit,
     setTimeout(() => setCopied(false), 1500)
   }
 
-  const categoryColor = CATEGORY_COLORS[prompt.category] || CATEGORY_COLORS['其他']
+  // 检测是否为深色模式
+  const isDark = document.documentElement.classList.contains('dark')
+  const categoryColor = getCategoryColor(prompt.category, isDark)
   const isNanoBanana = prompt.source?.url?.toLowerCase().includes('nanobanana2')
-  const isImageModel = prompt.targetModel?.toLowerCase().includes('nanobanana') ||
-    prompt.targetModel?.toLowerCase().includes('midjourney') ||
-    prompt.targetModel?.toLowerCase().includes('dall-e') ||
-    prompt.targetModel?.toLowerCase().includes('flux') ||
-    prompt.targetModel?.toLowerCase().includes('stable')
+  const isImageModelType = isImageModel(prompt.targetModel)
 
   return (
     <div
-      className="group cursor-pointer"
+      className="group cursor-pointer hover-lift"
       onClick={onView}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
         background: 'var(--bg-card)',
-        border: '1px solid var(--border)',
-        borderRadius: '14px',
+        border: `1px solid ${isHovered ? 'var(--border-hover)' : 'var(--border)'}`,
+        borderRadius: '16px',
         boxShadow: isHovered ? 'var(--shadow-card-hover)' : 'var(--shadow-card)',
-        transform: isHovered ? 'translateY(-2px)' : 'none',
-        transition: 'all 0.2s ease'
+        transform: isHovered ? 'translateY(-4px) scale(1.01)' : 'none',
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
       }}
     >
       <div className="p-5">
@@ -66,8 +52,12 @@ export function PromptCard({ prompt, onCopy, onToggleFavorite, onDelete, onEdit,
               <span
                 className="px-2.5 py-1 text-xs font-medium rounded-md"
                 style={{
-                  background: isImageModel ? '#FDF2F8' : 'var(--bg-tertiary)',
-                  color: isImageModel ? '#EC4899' : 'var(--text-muted)'
+                  background: isImageModelType
+                    ? (isDark ? MODEL_COLORS.image.darkBg : MODEL_COLORS.image.bg)
+                    : MODEL_COLORS.text.bg,
+                  color: isImageModelType
+                    ? (isDark ? MODEL_COLORS.image.darkText : MODEL_COLORS.image.text)
+                    : MODEL_COLORS.text.text
                 }}
               >
                 {prompt.targetModel}
@@ -161,20 +151,20 @@ export function PromptCard({ prompt, onCopy, onToggleFavorite, onDelete, onEdit,
 
           <div className="flex items-center gap-1">
             <div
-              className="flex items-center gap-1 mr-1"
-              style={{ opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s' }}
+              className="flex items-center gap-0.5 mr-1"
+              style={{ opacity: isHovered ? 1 : 0, transition: 'opacity 0.2s ease' }}
             >
               <button
                 onClick={e => { e.stopPropagation(); onEdit() }}
-                className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)]"
-                style={{ color: 'var(--text-muted)' }}
+                className="action-btn"
+                title="编辑"
               >
                 <Edit3 size={14} />
               </button>
               <button
                 onClick={e => { e.stopPropagation(); onDelete() }}
-                className="p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500"
-                style={{ color: 'var(--text-muted)' }}
+                className="action-btn action-btn-danger"
+                title="删除"
               >
                 <Trash2 size={14} />
               </button>
@@ -182,13 +172,15 @@ export function PromptCard({ prompt, onCopy, onToggleFavorite, onDelete, onEdit,
 
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium btn-press transition-all duration-200"
               style={{
                 background: copied ? 'var(--success-light)' : 'var(--accent)',
-                color: copied ? 'var(--success)' : 'white'
+                color: copied ? 'var(--success)' : 'white',
+                boxShadow: copied ? 'none' : '0 2px 6px var(--accent-glow)',
+                minWidth: '72px'
               }}
             >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? <Check size={14} className="copy-success-icon" /> : <Copy size={14} />}
               {copied ? '已复制' : '复制'}
             </button>
           </div>

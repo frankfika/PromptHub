@@ -40,23 +40,47 @@ export function UsePromptModal({ prompt, onClose, onCopy }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--bg-secondary)] rounded-xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <h2 className="text-lg font-semibold">填写变量</h2>
-          <button onClick={onClose} className="p-1 hover:bg-[var(--bg-tertiary)] rounded">
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ background: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="w-full max-w-lg animate-scaleIn"
+        style={{
+          background: 'var(--bg-card)',
+          borderRadius: '20px',
+          boxShadow: 'var(--shadow-lg)'
+        }}
+      >
+        <div
+          className="flex items-center justify-between p-5"
+          style={{ borderBottom: '1px solid var(--border)' }}
+        >
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            填写变量
+          </h2>
+          <button onClick={onClose} className="action-btn">
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
-          <div className="text-sm text-[var(--text-secondary)]">
+        <div className="p-5 space-y-4">
+          <div
+            className="text-sm"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             这个提示词包含 {templateVars.length} 个变量，请填写：
           </div>
 
           {templateVars.map(v => (
             <div key={v}>
-              <label className="block text-sm font-medium mb-1.5 text-[var(--text-primary)]">
+              <label
+                className="block text-sm font-medium mb-1.5"
+                style={{ color: 'var(--text-primary)' }}
+              >
                 {v}
               </label>
               <input
@@ -64,31 +88,59 @@ export function UsePromptModal({ prompt, onClose, onCopy }: Props) {
                 value={variables[v] || ''}
                 onChange={e => setVariables(prev => ({ ...prev, [v]: e.target.value }))}
                 placeholder={`请输入 ${v}`}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 focus:outline-none focus:border-[var(--accent)]"
+                className="w-full rounded-xl px-4 py-3 text-sm focus:outline-none transition-all input-modern"
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)'
+                }}
               />
             </div>
           ))}
 
           <div>
-            <label className="block text-sm text-[var(--text-secondary)] mb-1.5">预览</label>
-            <div className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg p-3 font-mono text-sm text-[var(--text-primary)] max-h-40 overflow-auto whitespace-pre-wrap">
+            <label
+              className="block text-sm mb-1.5"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              预览
+            </label>
+            <div
+              className="rounded-xl p-4 text-sm max-h-40 overflow-auto whitespace-pre-wrap"
+              style={{
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+                fontFamily: 'inherit'
+              }}
+            >
               {filledContent}
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 p-4 border-t border-[var(--border)]">
+        <div
+          className="flex justify-end gap-3 p-5"
+          style={{ borderTop: '1px solid var(--border)' }}
+        >
           <button
             onClick={onClose}
-            className="px-4 py-2 text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] rounded-lg"
+            className="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
+            style={{ color: 'var(--text-secondary)' }}
           >
             取消
           </button>
           <button
             onClick={handleCopy}
-            className="px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg flex items-center gap-2"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all btn-press"
+            style={{
+              background: copied ? 'var(--success-light)' : 'var(--accent)',
+              color: copied ? 'var(--success)' : 'white',
+              boxShadow: copied ? 'none' : '0 2px 8px var(--accent-glow)',
+              minWidth: '88px'
+            }}
           >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
+            {copied ? <Check size={16} className="copy-success-icon" /> : <Copy size={16} />}
             {copied ? '已复制' : '复制'}
           </button>
         </div>

@@ -1,4 +1,5 @@
 import { Plus, Upload, Sparkles, Command, Zap, FileText, BookOpen } from 'lucide-react'
+import { STAT_COLORS } from '../lib/constants'
 
 interface Props {
   onAddNew: () => void
@@ -6,19 +7,23 @@ interface Props {
 }
 
 export function EmptyState({ onAddNew, onOpenImport }: Props) {
+  const isDark = document.documentElement.classList.contains('dark')
+
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       {/* 插图区域 */}
       <div
         className="w-32 h-32 rounded-3xl flex items-center justify-center mb-8"
         style={{
-          background: 'linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%)'
+          background: isDark
+            ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)'
+            : 'linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%)'
         }}
       >
         <BookOpen
           size={56}
           strokeWidth={1.5}
-          style={{ color: '#2563EB' }}
+          style={{ color: isDark ? '#60A5FA' : '#2563EB' }}
         />
       </div>
 
@@ -89,9 +94,9 @@ export function EmptyState({ onAddNew, onOpenImport }: Props) {
         >
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-            style={{ background: '#ECFDF5' }}
+            style={{ background: isDark ? STAT_COLORS.total.darkBg : STAT_COLORS.total.bg }}
           >
-            <Sparkles size={20} style={{ color: '#10B981' }} />
+            <Sparkles size={20} style={{ color: STAT_COLORS.total.icon }} />
           </div>
           <h4
             className="text-sm font-semibold mb-1.5"
@@ -126,9 +131,9 @@ export function EmptyState({ onAddNew, onOpenImport }: Props) {
         >
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-            style={{ background: '#EFF6FF' }}
+            style={{ background: isDark ? STAT_COLORS.usage.darkBg : STAT_COLORS.usage.bg }}
           >
-            <Zap size={20} style={{ color: '#3B82F6' }} />
+            <Zap size={20} style={{ color: STAT_COLORS.usage.icon }} />
           </div>
           <h4
             className="text-sm font-semibold mb-1.5"
@@ -163,9 +168,9 @@ export function EmptyState({ onAddNew, onOpenImport }: Props) {
         >
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-            style={{ background: '#F5F3FF' }}
+            style={{ background: isDark ? STAT_COLORS.categories.darkBg : STAT_COLORS.categories.bg }}
           >
-            <FileText size={20} style={{ color: '#8B5CF6' }} />
+            <FileText size={20} style={{ color: STAT_COLORS.categories.icon }} />
           </div>
           <h4
             className="text-sm font-semibold mb-1.5"

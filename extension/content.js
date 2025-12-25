@@ -4,10 +4,19 @@ let toastContainer = null
 let saveButton = null
 let currentInputElement = null
 
+// Web 应用地址（与 background.js 保持一致）
+const WEB_APP_URL = 'http://localhost:5174'
+const WEB_APP_ORIGIN = new URL(WEB_APP_URL).origin
+
 // 初始化
 init()
 
 function init() {
+  // 如果在 Web 管理页面，先初始化与页面的通信桥
+  if (isWebAppPage()) {
+    setupWebAppBridge()
+  }
+
   createToastContainer()
   createSelectionSaveButton()
   observeInputs()
@@ -148,6 +157,33 @@ function listenForMessages() {
       }
     }
     return true
+  })
+}
+
+function isWebAppPage() {
+  return window.location.origin === WEB_APP_ORIGIN
+}
+
+// Web 管理页面与扩展间的通信桥：避免把 Prompt 内容放到 URL 里
+function setupWebAppBridge() {
+  window.addEventListener('message', async (event) => {
+    if (event.source !== window) return
+    if (event.origin !== WEB_APP_ORIGIN) return
+
+    const msg = event.data
+    if (!msg || msg.source !== 'prompthub-web') return
+
+    if (msg.type === 'request-pending-prompt') {
+      const result = await chrome.storage.local.get(['pendingPrompt'])
+      const pending = result.pendingPrompt
+      if (pending) {
+        window.postMessage(
+          { source: 'prompthub-extension', type: 'pending-prompt', payload: pending },
+          WEB_APP_ORIGIN
+        )
+        await chrome.storage.local.remove('pendingPrompt')
+      }
+    }
   })
 }
 
@@ -536,7 +572,7 @@ async function updateSuggestions(query) {
     </div>
     <div class="prompthub-list">
       ${prompts.map((p, i) => `
-        <div class="prompthub-item" data-index="${i}" data-content="${escapeHtml(p.content)}">
+        <div class="prompthub-item" data-index="${i}">
           <div class="prompthub-item-title">${escapeHtml(p.title)}</div>
           <div class="prompthub-item-preview">${escapeHtml(p.content.slice(0, 80))}${p.content.length > 80 ? '...' : ''}</div>
           ${p.category ? `<span class="prompthub-item-tag">${escapeHtml(p.category)}</span>` : ''}
@@ -548,7 +584,9 @@ async function updateSuggestions(query) {
   // 绑定点击事件
   promptSuggestionPanel.querySelectorAll('.prompthub-item').forEach(item => {
     item.addEventListener('click', () => {
-      insertPrompt(item.dataset.content)
+      const index = parseInt(item.dataset.index, 10)
+      const prompt = prompts[index]
+      if (prompt?.content) insertPrompt(prompt.content)
     })
   })
 }

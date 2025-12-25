@@ -58,8 +58,7 @@ export function SettingsModal({ settings, onSave, onClose }: Props) {
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg transition-colors"
-            style={{ color: 'var(--text-muted)' }}
+            className="action-btn"
           >
             <X size={20} />
           </button>
@@ -203,7 +202,7 @@ export function SettingsModal({ settings, onSave, onClose }: Props) {
           </button>
           <button
             onClick={handleSave}
-            className="px-6 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+            className="px-6 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 btn-press"
             style={{
               background: 'var(--accent)',
               color: 'white',
